@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MMF Interest Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --green: #00E676;
+            --bg: #0A0A0A;
+            --card: #111111;
+            --border: #222222;
+            --muted: #666666;
+            --text: #F0F0F0;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            background-image: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0,230,118,0.07), transparent);
+        }
+        .mono { font-family: 'Space Mono', monospace; }
+        nav {
+            background: rgba(10,10,10,0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+        }
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            transition: border-color 0.2s;
+        }
+        .card:hover { border-color: #333; }
+        .input-wrap { position: relative; }
+        .input-wrap .prefix {
+            position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+            color: var(--muted); font-size: 14px; pointer-events: none;
+            font-family: 'Space Mono', monospace;
+        }
+        .input-wrap .suffix {
+            position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+            color: var(--muted); font-size: 14px; pointer-events: none;
+        }
+        input[type="number"] {
+            background: #0d0d0d; border: 1px solid var(--border); color: var(--text);
+            border-radius: 10px; padding: 12px 14px; width: 100%; font-size: 15px;
+            font-family: 'Space Mono', monospace; transition: border-color 0.2s, box-shadow 0.2s;
+            -moz-appearance: textfield;
+        }
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type="number"]:focus {
+            outline: none; border-color: var(--green);
+            box-shadow: 0 0 0 3px rgba(0,230,118,0.1);
+        }
+        .has-prefix input { padding-left: 34px; }
+        .has-suffix input { padding-right: 34px; }
+        label {
+            display: block; font-size: 11px; font-weight: 600;
+            letter-spacing: 0.08em; text-transform: uppercase;
+            color: var(--muted); margin-bottom: 8px;
+        }
+        .btn-calc {
+            background: var(--green); color: #000; font-weight: 700;
+            font-size: 14px; letter-spacing: 0.05em; border: none;
+            border-radius: 10px; padding: 14px; width: 100%;
+            cursor: pointer; transition: opacity 0.15s, transform 0.1s, box-shadow 0.2s;
+            font-family: 'DM Sans', sans-serif;
+        }
+        .btn-calc:hover {
+            opacity: 0.9; transform: translateY(-1px);
+            box-shadow: 0 6px 24px rgba(0,230,118,0.25);
+        }
+        .btn-calc:active { transform: translateY(0); }
+        .stat-box {
+            background: #0d0d0d; border: 1px solid var(--border);
+            border-radius: 10px; padding: 14px; text-align: center;
+        }
+        .stat-box .slabel { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; display: block; }
+        .stat-box .val { font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 700; color: var(--text); }
+        .big-stat { padding: 16px 0 4px; border-top: 1px solid var(--border); }
+        .big-stat .slabel { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; display: block; }
+        .tab-btn {
+            padding: 7px 14px; font-size: 11px; font-weight: 600;
+            letter-spacing: 0.06em; text-transform: uppercase;
+            border: 1px solid var(--border); border-radius: 8px;
+            cursor: pointer; transition: all 0.15s;
+            background: transparent; color: var(--muted);
+        }
+        .tab-btn:hover { color: var(--text); border-color: #444; }
+        .tab-btn.active { background: var(--green); color: #000; border-color: var(--green); }
+        .results-section { display: none; animation: slideUp 0.35s ease; }
+        .results-section.visible { display: block; }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .section-title {
+            font-size: 11px; font-weight: 600; letter-spacing: 0.1em;
+            text-transform: uppercase; color: var(--muted); margin-bottom: 16px;
+        }
+        .logo-mark {
+            width: 32px; height: 32px; background: var(--green);
+            border-radius: 8px; display: flex; align-items: center; justify-content: center;
+        }
+        footer { border-top: 1px solid var(--border); }
+    </style>
+</head>
+<body>
+
+<nav class="sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+        <div class="logo-mark">
+            <i class="fas fa-chart-line text-black text-sm"></i>
+        </div>
+        <span class="font-bold text-base tracking-tight">MMF Calculator</span>
+    </div>
+    <div class="hidden md:flex items-center gap-6">
+        <a href="#" class="text-sm text-gray-500 hover:text-white transition">Home</a>
+        <a href="#" class="text-sm text-gray-500 hover:text-white transition">About</a>
+        <a href="#" class="text-sm text-gray-500 hover:text-white transition">Contact</a>
+    </div>
+    <button class="md:hidden text-gray-500"><i class="fas fa-bars"></i></button>
+</nav>
+
+<div class="container mx-auto px-4 py-10" style="max-width:1100px">
+    <div class="mb-10">
+        <h1 class="text-3xl font-bold tracking-tight mb-2">Money Market Fund</h1>
+        <p class="text-gray-500 text-sm">Estimate your interest earnings over any time period.</p>
+    </div>
+
+    <div class="flex flex-col lg:flex-row gap-6">
+
+        <!-- Left -->
+        <div class="flex-shrink-0 flex flex-col gap-4" style="width:300px">
+            <div class="card p-6">
+                <p class="section-title">Parameters</p>
+                <div class="mb-5">
+                    <label>Investment Amount</label>
+                    <div class="input-wrap has-prefix">
+                        <span class="prefix">$</span>
+                        <input type="number" id="principal" placeholder="5000" min="0" step="100">
+                    </div>
+                </div>
+                <div class="mb-5">
+                    <label>Annual Interest Rate</label>
+                    <div class="input-wrap has-suffix">
+                        <span class="suffix">%</span>
+                        <input type="number" id="rate" placeholder="4.5" min="0" max="30" step="0.1">
+                    </div>
+                </div>
+                <div class="mb-6">
+                    <label>Investment Period (days)</label>
+                    <div class="input-wrap">
+                        <input type="number" id="period" placeholder="90" min="1" max="3650">
+                    </div>
+                </div>
+                <button id="calculateBtn" class="btn-calc">
+                    <i class="fas fa-calculator mr-2"></i> Calculate Returns
+                </button>
+            </div>
+
+            <div id="results" class="card p-6 results-section">
+                <p class="section-title">Earnings Breakdown</p>
+                <div class="grid grid-cols-3 gap-2 mb-5">
+                    <div class="stat-box"><span class="slabel">Daily</span><span class="val" id="dailyEarnings">—</span></div>
+                    <div class="stat-box"><span class="slabel">Weekly</span><span class="val" id="weeklyEarnings">—</span></div>
+                    <div class="stat-box"><span class="slabel">Monthly</span><span class="val" id="monthlyEarnings">—</span></div>
+                </div>
+                <div class="big-stat">
+                    <span class="slabel">Total Interest Earned</span>
+                    <p id="totalInterest" class="mono text-2xl font-bold" style="color:var(--green)">—</p>
+                </div>
+                <div class="big-stat mt-3">
+                    <span class="slabel">Final Balance</span>
+                    <p id="finalAmount" class="mono text-3xl font-bold text-white">—</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Charts -->
+        <div class="flex-1 flex flex-col gap-4">
+            <div class="card p-6">
+                <div class="flex items-center justify-between mb-5">
+                    <p class="section-title" style="margin-bottom:0">Interest Growth</p>
+                    <div class="flex gap-2">
+                        <button class="tab-btn active" id="dailyTab">Daily</button>
+                        <button class="tab-btn" id="weeklyTab">Weekly</button>
+                        <button class="tab-btn" id="monthlyTab">Monthly</button>
+                    </div>
+                </div>
+                <div style="position:relative;height:220px">
+                    <canvas id="interestChart"></canvas>
+                </div>
+            </div>
+
+            <div class="flex flex-col md:flex-row gap-4">
+                <div class="card p-6 flex-1">
+                    <p class="section-title">Projection Timeline</p>
+                    <div style="position:relative;height:180px">
+                        <canvas id="timelineChart"></canvas>
+                    </div>
+                </div>
+                <div class="card p-6 flex-1">
+                    <p class="section-title">Principal vs Interest</p>
+                    <div style="position:relative;height:180px">
+                        <canvas id="breakdownChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer class="mt-12 py-8">
+    <div class="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4" style="max-width:1100px">
+        <div class="flex items-center gap-3">
+            <div class="logo-mark"><i class="fas fa-chart-line text-black text-sm"></i></div>
+            <div>
+                <p class="font-bold text-sm">MMF Calculator</p>
+                <p class="text-xs text-gray-600">Estimate your money market fund earnings</p>
+            </div>
+        </div>
+        <p class="text-xs text-gray-600">For informational purposes only. Not financial advice.</p>
+    </div>
+</footer>
+
+<script>
+    const baseTooltip = {
+        backgroundColor: '#1a1a1a', titleColor: '#fff', bodyColor: '#888',
+        borderColor: '#333', borderWidth: 1, padding: 10
+    };
+    const tickStyle = { color: '#555', font: { family: 'Space Mono', size: 10 } };
+
+    const interestChart = new Chart(document.getElementById('interestChart'), {
+        type: 'line',
+        data: { labels: [], datasets: [{ label: 'Interest', data: [], borderColor: '#00E676', backgroundColor: 'rgba(0,230,118,0.07)', borderWidth: 2, fill: true, tension: 0.4, pointRadius: 0, pointHoverRadius: 4, pointHoverBackgroundColor: '#00E676' }] },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { ...baseTooltip, callbacks: { label: c => `$${c.parsed.y.toFixed(2)}` } } },
+            scales: {
+                x: { grid: { color: '#141414' }, ticks: tickStyle, border: { color: '#222' } },
+                y: { grid: { color: '#1e1e1e' }, ticks: { ...tickStyle, callback: v => '$' + v.toFixed(0) }, border: { color: '#222' } }
+            }
+        }
+    });
+
+    const timelineChart = new Chart(document.getElementById('timelineChart'), {
+        type: 'bar',
+        data: {
+            labels: ['1M', '3M', '6M', '1Y', '2Y', '5Y'],
+            datasets: [{ data: [0,0,0,0,0,0], backgroundColor: 'rgba(0,230,118,0.6)', hoverBackgroundColor: '#00E676', borderRadius: 5, borderSkipped: false }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { ...baseTooltip, callbacks: { label: c => `$${c.parsed.y.toFixed(2)}` } } },
+            scales: {
+                x: { grid: { display: false }, ticks: tickStyle, border: { color: '#222' } },
+                y: { grid: { color: '#1e1e1e' }, ticks: { ...tickStyle, callback: v => '$' + v.toFixed(0) }, border: { color: '#222' } }
+            }
+        }
+    });
+
+    const breakdownChart = new Chart(document.getElementById('breakdownChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Principal', 'Interest'],
+            datasets: [{ data: [100, 0], backgroundColor: ['#222', '#00E676'], borderWidth: 0, hoverOffset: 4 }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false, cutout: '72%',
+            plugins: {
+                legend: { display: true, position: 'bottom', labels: { color: '#666', padding: 14, font: { family: 'DM Sans', size: 11 }, boxWidth: 10, boxHeight: 10 } },
+                tooltip: { ...baseTooltip, callbacks: { label: c => { const t = c.dataset.data.reduce((a,b)=>a+b,0); return `${c.label}: $${c.raw.toFixed(2)} (${Math.round(c.raw/t*100)}%)`; } } }
+            }
+        }
+    });
+
+    let lastCalc = { principal: 5000, rate: 4.5, period: 90 };
+
+    function calculate() {
+        const principal = parseFloat(document.getElementById('principal').value);
+        const rate = parseFloat(document.getElementById('rate').value);
+        const period = parseInt(document.getElementById('period').value);
+        if (!principal || !rate || !period || principal <= 0 || rate <= 0 || period <= 0) return;
+
+        lastCalc = { principal, rate, period };
+        const dr = rate / 36500;
+        const totalInt = principal * dr * period;
+        const daily = principal * dr;
+
+        document.getElementById('dailyEarnings').textContent = '$' + daily.toFixed(2);
+        document.getElementById('weeklyEarnings').textContent = '$' + (daily * 7).toFixed(2);
+        document.getElementById('monthlyEarnings').textContent = '$' + (daily * 30).toFixed(2);
+        document.getElementById('totalInterest').textContent = '$' + totalInt.toFixed(2);
+        document.getElementById('finalAmount').textContent = '$' + (principal + totalInt).toFixed(2);
+
+        document.getElementById('results').classList.add('visible');
+        updateCharts();
+    }
+
+    function updateCharts() {
+        const { principal, rate, period } = lastCalc;
+        const dr = rate / 36500;
+        const activeTab = document.querySelector('.tab-btn.active').id;
+
+        let labels, data;
+        if (activeTab === 'dailyTab') {
+            const n = Math.min(period, 60);
+            labels = Array.from({length: n}, (_, i) => `D${i+1}`);
+            data = labels.map((_, i) => principal * dr * (i + 1));
+        } else if (activeTab === 'weeklyTab') {
+            const n = Math.min(Math.ceil(period / 7), 24);
+            labels = Array.from({length: n}, (_, i) => `W${i+1}`);
+            data = labels.map((_, i) => principal * dr * 7 * (i + 1));
+        } else {
+            const n = Math.min(Math.ceil(period / 30), 24);
+            labels = Array.from({length: n}, (_, i) => `M${i+1}`);
+            data = labels.map((_, i) => principal * dr * 30 * (i + 1));
+        }
+        interestChart.data.labels = labels;
+        interestChart.data.datasets[0].data = data;
+        interestChart.update();
+
+        timelineChart.data.datasets[0].data = [30, 90, 180, 365, 730, 1825].map(d => principal * dr * d);
+        timelineChart.update();
+
+        const totalInt = principal * dr * period;
+        breakdownChart.data.datasets[0].data = [principal, totalInt];
+        breakdownChart.update();
+    }
+
+    ['dailyTab','weeklyTab','monthlyTab'].forEach(id => {
+        document.getElementById(id).addEventListener('click', function() {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            updateCharts();
+        });
+    });
+
+    document.getElementById('calculateBtn').addEventListener('click', calculate);
+    ['principal','rate','period'].forEach(id => {
+        document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') calculate(); });
+    });
+
+    window.addEventListener('load', () => {
+        document.getElementById('principal').value = '5000';
+        document.getElementById('rate').value = '4.5';
+        document.getElementById('period').value = '90';
+        calculate();
+    });
+</script>
+</body>
+</html>
